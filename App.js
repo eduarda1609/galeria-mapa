@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, Text, View, TouchableOpacity, TextInput, 
-  ScrollView, Image, Alert, ActivityIndicator 
+  ScrollView, Image, Alert, ActivityIndicator, Modal 
 } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import * as ImagePicker from 'expo-image-picker';
@@ -23,6 +23,7 @@ export default function App() {
   const [dataFiltro, setDataFiltro] = useState(''); 
 
   const [fotoSelecionadaMapa, setFotoSelecionadaMapa] = useState(null);
+  const [fotoTelaCheia, setFotoTelaCheia] = useState(null); // NOVO ESTADO: Controla a foto exibida em tela inteira
 
   useEffect(() => {
     const prepararApp = async () => {
@@ -243,7 +244,10 @@ export default function App() {
           {fotosFiltradas.length === 0 ? <Text style={styles.textoVazio}>Nenhuma imagem encontrada para esta busca.</Text> : (
             fotosFiltradas.map((item) => (
               <View key={item.id} style={styles.itemGaleria}>
-                <Image source={{ uri: item.image_uri }} style={styles.miniaturaFoto} />
+                {/* Imagem agora é clicável para abrir em tela cheia */}
+                <TouchableOpacity onPress={() => setFotoTelaCheia(item.image_uri)}>
+                  <Image source={{ uri: item.image_uri }} style={styles.miniaturaFoto} />
+                </TouchableOpacity>
                 
                 <View style={styles.infoFotoContainer}>
                   {idEditando === item.id ? (
@@ -267,6 +271,18 @@ export default function App() {
           <View style={{ height: 40 }} />
         </ScrollView>
       )}
+
+      {/* MODAL: EXIBIÇÃO DA FOTO EM TELA CHEIA */}
+      <Modal visible={!!fotoTelaCheia} transparent={true} animationType="fade">
+        <View style={styles.fundoModal}>
+          <TouchableOpacity style={styles.botaoFecharModal} onPress={() => setFotoTelaCheia(null)}>
+            <Text style={styles.textoFecharModal}>X Fechar</Text>
+          </TouchableOpacity>
+          {fotoTelaCheia && (
+            <Image source={{ uri: fotoTelaCheia }} style={styles.imagemTelaCheia} resizeMode="contain" />
+          )}
+        </View>
+      </Modal>
 
       {/*TELA 3: MAPA DE LOCALIZAÇÃO*/}
       {abaAtual === 'mapa' && (
@@ -389,7 +405,12 @@ const styles = StyleSheet.create({
   botaoSalvarEdicao: { backgroundColor: '#10b981', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 8, alignSelf: 'flex-start' },
   textoBotaoEdicao: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
 
- 
+  // MODAL DA FOTO EM TELA CHEIA
+  fundoModal: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.9)', justifyContent: 'center', alignItems: 'center' },
+  botaoFecharModal: { position: 'absolute', top: 50, right: 20, zIndex: 1, backgroundColor: 'rgba(255, 255, 255, 0.2)', padding: 10, borderRadius: 8 },
+  textoFecharModal: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  imagemTelaCheia: { width: '100%', height: '80%' },
+
   // ESTILOS: MAPA E MARCADORES
  
   mapaContainer: { flex: 1 }, 
