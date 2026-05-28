@@ -17,7 +17,7 @@ Câmera ou Galeria: Escolha tirar uma foto na hora ou pegar da galeria do celula
 GPS Automático: No momento em que a foto é escolhida, o app captura sua Latitude e Longitude e salva no banco local;
 
 2. Galeria: Nesta tela é possível gerenciar todas as imagens salvas
-Listagem: Mostra a miniatura da foto, título, data do registro e as coordenadas;
+Listagem: Mostra a miniatura da foto, título, data do registro e as coordenadas. Ao clicar na imagem salva ela abre em uma tela maior;
 Filtros e Busca: Use a barra superior para pesquisar fotos pelo nome ou digite uma data específica para filtrar. Use o botão "Limpar" para apagar o que você digitou na busca;
 Editar: Permite renomear o título da foto salva;
 Excluir: Apaga a foto do banco de dados permanentemente;
