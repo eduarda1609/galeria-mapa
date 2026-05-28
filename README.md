@@ -23,6 +23,6 @@ Editar: Permite renomear o título da foto salva;
 Excluir: Apaga a foto do banco de dados permanentemente;
 
 3. Mapa: Nesta tela é possível visualizar as localizações das imagens registradas.
-Marcadores (Pinos): Cada foto cadastrada gera um pino laranja no mapa correspondente ao local exato onde foi salva.
-Cartão de Detalhes: Ao tocar em um pino, um cartão flutuante aparecerá na parte inferior da tela exibindo a foto, o título e a data em que foi tirada.
+Marcadores (Pinos): Cada foto cadastrada gera um pino laranja no mapa correspondente ao local exato onde foi salva. 
+Cartão de Detalhes: Ao tocar em um pino, um cartão flutuante aparecerá na parte inferior da tela exibindo a foto, o título e a data em que foi tirada. 
 Fechar: Para esconder a foto, toque no botão "Fechar Detalhes" ou clique em qualquer área vazia do mapa.

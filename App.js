@@ -23,7 +23,7 @@ export default function App() {
   const [dataFiltro, setDataFiltro] = useState(''); 
 
   const [fotoSelecionadaMapa, setFotoSelecionadaMapa] = useState(null);
-  const [fotoTelaCheia, setFotoTelaCheia] = useState(null); // NOVO ESTADO: Controla a foto exibida em tela inteira
+  const [fotoTelaCheia, setFotoTelaCheia] = useState(null); 
 
   useEffect(() => {
     const prepararApp = async () => {
@@ -169,6 +169,22 @@ export default function App() {
 
   const filtrosAtivos = filtroTipo !== 'todos' || termoBusca !== '';
 
+  // === NOVA LÓGICA DE AGRUPAMENTO DE FOTOS PARA O MAPA ===
+  // Pega as fotos filtradas e junta as que possuem a mesma coordenada
+  const fotosAgrupadasMapa = Object.values(fotosFiltradas.reduce((acumulador, foto) => {
+    const chaveLocal = `${foto.latitude.toFixed(4)},${foto.longitude.toFixed(4)}`;
+    if (!acumulador[chaveLocal]) {
+      acumulador[chaveLocal] = {
+        id: chaveLocal,
+        latitude: foto.latitude,
+        longitude: foto.longitude,
+        fotos: [] // Cria uma gaveta de fotos para este local exato
+      };
+    }
+    acumulador[chaveLocal].fotos.push(foto); // Guarda a foto na gaveta certa
+    return acumulador;
+  }, {}));
+
   return (
     <View style={styles.container}>
       
@@ -244,7 +260,6 @@ export default function App() {
           {fotosFiltradas.length === 0 ? <Text style={styles.textoVazio}>Nenhuma imagem encontrada para esta busca.</Text> : (
             fotosFiltradas.map((item) => (
               <View key={item.id} style={styles.itemGaleria}>
-                {/* Imagem agora é clicável para abrir em tela cheia */}
                 <TouchableOpacity onPress={() => setFotoTelaCheia(item.image_uri)}>
                   <Image source={{ uri: item.image_uri }} style={styles.miniaturaFoto} />
                 </TouchableOpacity>
@@ -298,38 +313,52 @@ export default function App() {
               longitudeDelta: 0.0421,
             }}
           >
-            {/* Percorre as fotos e desenha os pinos no mapa */}
-            {fotosFiltradas.map((foto) => (
+            {/* Agora desenhamos os GRUPOS de fotos no mapa, e não as fotos avulsas */}
+            {fotosAgrupadasMapa.map((grupo) => (
               <Marker 
-                key={foto.id} 
-                coordinate={{ latitude: foto.latitude, longitude: foto.longitude }}
+                key={grupo.id} 
+                coordinate={{ latitude: grupo.latitude, longitude: grupo.longitude }}
                 pinColor="#f97316" 
-                // Atribui a foto clicada ao estado para abrir o Cartão Flutuante
-                onPress={() => setFotoSelecionadaMapa(foto)} 
+                onPress={() => setFotoSelecionadaMapa(grupo)} // Passa o GRUPO inteiro
               >
-                
                 <Callout>
                   <View style={styles.calloutTextOnly}>
-                    <Text style={styles.calloutTitulo} numberOfLines={1}>{foto.title}</Text>
-                    <Text style={styles.calloutData}>Em: {foto.created_at.split(',')[0]}</Text>
-                    <Text style={styles.calloutDica}>Veja a foto abaixo 👇</Text>
+                    <Text style={styles.calloutTitulo} numberOfLines={1}>
+                      {grupo.fotos.length > 1 ? `${grupo.fotos.length} fotos aqui` : grupo.fotos[0].title}
+                    </Text>
+                    <Text style={styles.calloutDica}>Toque no pino 👇</Text>
                   </View>
                 </Callout>
               </Marker>
             ))}
           </MapView>
 
-        
+          {/* O CARTÃO FLUTUANTE (Modificado para exibir uma lista de fotos) */}
           {fotoSelecionadaMapa && (
-            <View style={styles.cartaoFlutuante}>
-              <Image source={{ uri: fotoSelecionadaMapa.image_uri }} style={styles.miniaturaFlutuante} />
-              <View style={styles.infoFlutuante}>
-                <Text style={styles.tituloFlutuante} numberOfLines={2}>{fotoSelecionadaMapa.title}</Text>
-                <Text style={styles.dataFlutuante}>{fotoSelecionadaMapa.created_at}</Text>
-                <TouchableOpacity style={styles.botaoFecharFlutuante} onPress={() => setFotoSelecionadaMapa(null)}>
-                  <Text style={styles.textoBotaoFechar}>Fechar Detalhes</Text>
+            <View style={styles.cartaoFlutuanteGrupo}>
+              <View style={styles.headerCartaoGrupo}>
+                <Text style={styles.tituloFlutuanteGrupoPrincipal}>
+                  {fotoSelecionadaMapa.fotos.length > 1 ? `${fotoSelecionadaMapa.fotos.length} fotos neste local` : '1 foto neste local'}
+                </Text>
+                <TouchableOpacity style={styles.botaoFecharFlutuanteGrupo} onPress={() => setFotoSelecionadaMapa(null)}>
+                  <Text style={styles.textoBotaoFecharGrupo}>Fechar</Text>
                 </TouchableOpacity>
               </View>
+
+              {/* Lista rolável na horizontal com as fotos do local */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollImagensGrupo}>
+                {fotoSelecionadaMapa.fotos.map((foto) => (
+                  <TouchableOpacity 
+                    key={foto.id} 
+                    style={styles.itemGrupoMap} 
+                    onPress={() => setFotoTelaCheia(foto.image_uri)} // Aproveita a função de tela cheia aqui também!
+                  >
+                    <Image source={{ uri: foto.image_uri }} style={styles.miniaturaFlutuanteGrupo} />
+                    <Text style={styles.tituloMiniaturaGrupo} numberOfLines={1}>{foto.title}</Text>
+                    <Text style={styles.dataMiniaturaGrupo}>{foto.created_at.split(',')[0]}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
           )}
         </View>
@@ -352,10 +381,8 @@ export default function App() {
 
 const styles = StyleSheet.create({
  
-  
   container: { flex: 1, backgroundColor: '#f5f3ff', paddingTop: 40 }, 
   conteudo: { flex: 1, padding: 15 },
-  
   
   //TELA DE CADASTRO
   conteudoCentralizado: { flex: 1, padding: 20, justifyContent: 'center' }, // Mantém o formulário ao centro da tela
@@ -367,9 +394,7 @@ const styles = StyleSheet.create({
   botaoAdicionar: { backgroundColor: '#f97316', padding: 18, borderRadius: 12, alignItems: 'center', elevation: 3 }, 
   textoBotao: { color: '#ffffff', fontWeight: 'bold', fontSize: 18 },
 
-  
   // PAINEL DE FILTROS (TELA DE GALERIA)
-  
   cardFiltros: { backgroundColor: '#ffffff', padding: 18, borderRadius: 16, marginBottom: 20, elevation: 3, borderWidth: 1, borderColor: '#ede9fe' }, // Bloco branco que agrupa a área de busca
   tituloFiltro: { fontSize: 18, fontWeight: 'bold', color: '#7c3aed', marginBottom: 12 },
   inputBusca: { borderWidth: 1.5, borderColor: '#d8b4fe', borderRadius: 12, padding: 14, fontSize: 16, backgroundColor: '#fcfaff', marginBottom: 12 }, // Input principal para digitar nomes
@@ -382,9 +407,7 @@ const styles = StyleSheet.create({
   botaoFiltroLimpar: { backgroundColor: '#ef4444' }, // Cor de alerta quando o filtro precisa ser apagado
   textoFiltroAtivo: { color: '#ffffff', fontSize: 16, fontWeight: 'bold' },
 
-  
   //ITENS DA GALERIA (LISTAGEM)
-
   seccionTitle: { fontSize: 20, fontWeight: 'bold', color: '#4c1d95', marginBottom: 15, marginLeft: 5 }, // Título "Imagens Salvas (X)"
   textoVazio: { textAlign: 'center', color: '#6b7280', fontSize: 16, marginTop: 30, fontStyle: 'italic' },
   itemGaleria: { backgroundColor: '#ffffff', borderRadius: 16, padding: 12, flexDirection: 'row', marginBottom: 15, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1 }, // Card individual para cada foto listada
@@ -400,7 +423,6 @@ const styles = StyleSheet.create({
   botaoDeletar: { backgroundColor: '#ef4444', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, elevation: 1 },
   textoBotaoAcao: { color: '#ffffff', fontSize: 14, fontWeight: 'bold' },
   
-
   inputEdicao: { borderWidth: 1.5, borderColor: '#d8b4fe', borderRadius: 8, padding: 10, fontSize: 16, marginBottom: 8 },
   botaoSalvarEdicao: { backgroundColor: '#10b981', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 8, alignSelf: 'flex-start' },
   textoBotaoEdicao: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
@@ -412,31 +434,27 @@ const styles = StyleSheet.create({
   imagemTelaCheia: { width: '100%', height: '80%' },
 
   // ESTILOS: MAPA E MARCADORES
- 
   mapaContainer: { flex: 1 }, 
   mapa: { width: '100%', height: '100%' },
-
 
   calloutTextOnly: { width: 180, padding: 10, alignItems: 'center' },
   calloutTitulo: { fontWeight: 'bold', fontSize: 15, color: '#7c3aed', marginBottom: 6, textAlign: 'center' },
   calloutData: { fontSize: 13, color: '#4b5563', textAlign: 'center' },
   calloutDica: { fontSize: 12, color: '#f97316', marginTop: 8, fontWeight: 'bold' },
 
-  
-  // ESTILOS: CARTÃO FLUTUANTE (SOBRE O MAPA)
+  // --- NOVO ESTILO: CARTÃO FLUTUANTE DE GRUPOS ---
+  cartaoFlutuanteGrupo: { position: 'absolute', bottom: 25, left: 15, right: 15, backgroundColor: '#ffffff', borderRadius: 20, padding: 15, elevation: 25, zIndex: 9999, borderWidth: 1, borderColor: '#ede9fe' },
+  headerCartaoGrupo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, paddingHorizontal: 5 },
+  tituloFlutuanteGrupoPrincipal: { fontSize: 16, fontWeight: 'bold', color: '#4c1d95' },
+  botaoFecharFlutuanteGrupo: { backgroundColor: '#f97316', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 },
+  textoBotaoFecharGrupo: { color: '#ffffff', fontSize: 12, fontWeight: 'bold' },
+  scrollImagensGrupo: { flexDirection: 'row' },
+  itemGrupoMap: { marginRight: 15, alignItems: 'center', width: 90 },
+  miniaturaFlutuanteGrupo: { width: 90, height: 90, borderRadius: 12, backgroundColor: '#f3f4f6', marginBottom: 5 },
+  tituloMiniaturaGrupo: { fontSize: 12, color: '#4c1d95', fontWeight: 'bold', textAlign: 'center' },
+  dataMiniaturaGrupo: { fontSize: 10, color: '#6b7280', textAlign: 'center' },
 
- 
-  cartaoFlutuante: { position: 'absolute', bottom: 25, left: 20, right: 20, backgroundColor: '#ffffff', borderRadius: 20, padding: 18, flexDirection: 'row', alignItems: 'center', elevation: 25, zIndex: 9999, borderWidth: 1, borderColor: '#ede9fe' }, // 'Absolute' sobrepõe o mapa visualmente
-  miniaturaFlutuante: { width: 100, height: 100, borderRadius: 12, backgroundColor: '#f3f4f6' },
-  infoFlutuante: { flex: 1, paddingLeft: 18, justifyContent: 'center' },
-  tituloFlutuante: { fontSize: 18, fontWeight: 'bold', color: '#4c1d95', marginBottom: 6 },
-  dataFlutuante: { fontSize: 14, color: '#6b7280', marginBottom: 12 },
-  botaoFecharFlutuante: { backgroundColor: '#f97316', paddingVertical: 10, paddingHorizontal: 18, borderRadius: 10, alignSelf: 'flex-start', elevation: 2 },
-  textoBotaoFechar: { color: '#ffffff', fontSize: 14, fontWeight: 'bold' },
-
-  
   // ESTILOS: NAVEGAÇÃO INFERIOR
-
   barraNavegacao: { flexDirection: 'row', height: 75, backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#e5e7eb', elevation: 15 }, // Fixada no rodapé da aplicação
   botaoAba: { flex: 1, alignItems: 'center', justifyContent: 'center' }, 
   botaoAbaAtiva: { borderTopWidth: 4, borderTopColor: '#7c3aed' }, 
